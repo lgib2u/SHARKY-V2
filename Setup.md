@@ -104,7 +104,7 @@ vcs import src < ros2.repos
 ```bash
 sudo apt update
 rosdep install --from-paths src --ignore-src -y --rosdistro humble \
-  --skip-keys "fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev"
+  --skip-keys "fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev python3-catkin-pkg-modules"
 ```
 
 If you see an error about `python3-sip-dev` being unavailable on Raspberry Pi OS, install SIP via APT/pip and retry:
@@ -112,6 +112,13 @@ If you see an error about `python3-sip-dev` being unavailable on Raspberry Pi OS
 ```bash
 sudo apt install -y python3-sip || true
 python3 -m pip install sip --break-system-packages || true
+```
+
+Similarly, if you see `python3-catkin-pkg-modules` missing, install via APT/pip and retry:
+
+```bash
+sudo apt install -y python3-catkin-pkg || true
+python3 -m pip install catkin_pkg --break-system-packages || true
 ```
 
 3) Build a minimal set to keep compile time reasonable. Start with the ROS 2 core and messaging:
