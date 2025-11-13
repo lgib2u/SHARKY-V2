@@ -14,7 +14,10 @@ remote "cd ~/ros2_ws && vcs import src < ros2.repos"
 echo "Installing dependencies via rosdep..."
 remote_sudo "apt update"
 remote_sudo "rosdep update || true"
-remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src --ignore-src -y --rosdistro humble --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1'"
+# Ensure SIP is available even if python3-sip-dev is missing on Debian/RPi OS
+remote_sudo "apt install -y python3-sip || true"
+remote_sudo "python3 -m pip install sip --break-system-packages || true"
+remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src --ignore-src -y --rosdistro humble --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev'"
 
 echo "Building minimal ROS 2 core (this may take quite a while on Zero 2 W)..."
 remote "cd ~/ros2_ws && colcon build \
@@ -26,7 +29,7 @@ remote "cd ~/ros2_ws && colcon build \
 echo "Fetching and building camera_ros (libcamera driver)..."
 remote "cd ~/ros2_ws/src && [ -d camera_ros ] || git clone https://github.com/christianrauch/camera_ros.git"
 echo "Installing camera_ros dependencies via rosdep..."
-remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src/camera_ros --ignore-src -y --rosdistro humble --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1'"
+remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src/camera_ros --ignore-src -y --rosdistro humble --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev'"
 remote "cd ~/ros2_ws && colcon build \
   --merge-install --symlink-install \
   --packages-select camera_ros \
