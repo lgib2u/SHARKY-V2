@@ -65,10 +65,17 @@ free -h   # verify swap increased
 ```bash
 sudo apt install -y \
   build-essential cmake git wget curl gnupg lsb-release \
-  python3-pip python3-venv python3-colcon-common-extensions python3-vcstool \
-  python3-rosdep python3-empy python3-numpy \
-  libasio-dev libtinyxml2-dev libyaml-cpp-dev libssl-dev \
+  python3-pip python3-venv \
+  python3-empy python3-numpy \
+  libasio-dev libtinyxml2-dev libyaml-cpp-dev libssl-dev libcamera-dev \
   libjpeg-dev libpng-dev
+```
+
+If `python3-colcon-common-extensions`, `python3-vcstool`, or `python3-rosdep` are unavailable on Raspberry Pi OS Bookworm, install via pip:
+
+```bash
+python3 -m pip install -U pip setuptools wheel --break-system-packages
+python3 -m pip install colcon-common-extensions vcstool rosdep --break-system-packages
 ```
 
 Initialize rosdep (first time only):
@@ -96,7 +103,7 @@ vcs import src < ros2.repos
 
 ```bash
 sudo apt update
-rosdep install --from-paths src --ignore-src -y --rosdistro humble --rosdep-yes
+rosdep install --from-paths src --ignore-src -y --rosdistro humble
 ```
 
 3) Build a minimal set to keep compile time reasonable. Start with the ROS 2 core and messaging:

@@ -12,10 +12,17 @@ remote_sudo "apt update && apt full-upgrade -y"
 remote_sudo "apt install -y libcamera-apps dphys-swapfile \
   libcamera-dev \
   build-essential cmake git wget curl gnupg lsb-release \
-  python3-pip python3-venv python3-colcon-common-extensions python3-vcstool \
-  python3-rosdep python3-empy python3-numpy \
+  python3-pip python3-venv \
+  python3-empy python3-numpy \
   libasio-dev libtinyxml2-dev libyaml-cpp-dev libssl-dev \
   libjpeg-dev libpng-dev network-manager"
+
+echo "Ensuring Python tooling (pip, colcon, vcs, rosdep) is available..."
+# Debian Bookworm on Raspberry Pi OS may not provide these via apt; use pip fallback
+remote_sudo "python3 -m pip install -U pip setuptools wheel --break-system-packages || true"
+remote_sudo "command -v colcon >/dev/null 2>&1 || python3 -m pip install colcon-common-extensions --break-system-packages"
+remote_sudo "command -v vcs >/dev/null 2>&1 || python3 -m pip install vcstool --break-system-packages"
+remote_sudo "command -v rosdep >/dev/null 2>&1 || python3 -m pip install rosdep --break-system-packages"
 
 echo "Configuring swap to 2048 MB (temporary for builds)..."
 remote_sudo "if grep -q '^CONF_SWAPSIZE=' /etc/dphys-swapfile; then \
