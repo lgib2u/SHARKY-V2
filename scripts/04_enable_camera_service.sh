@@ -5,16 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bootstrap_env.sh
 source "${SCRIPT_DIR}/bootstrap_env.sh"
 
-require_cmd ssh
-
-echo "Target: ${USER}@${HOST}"
-wait_ssh
+echo "Enabling camera publisher service locally..."
 
 SERVICE_TMP="/tmp/libcamera_ros.service"
 SERVICE_PATH="/etc/systemd/system/libcamera_ros.service"
 
 echo "Uploading systemd service to run libcamera_ros on boot..."
-remote "cat > ${SERVICE_TMP} <<'EOF'
+remote "cat > ${SERVICE_TMP} <<EOF
 [Unit]
 Description=ROS 2 libcamera publisher
 After=network-online.target

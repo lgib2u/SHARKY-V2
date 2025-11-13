@@ -2,9 +2,8 @@
 set -euo pipefail
 
 # Defaults (override by exporting env vars before running scripts)
-HOST="${HOST:-sharky.local}"
-USER="${USER:-lewis}"
-PASS="${PASS:-Luna21}"
+HOST="${HOST:-localhost}"
+USER="${USER:-${USER:-pi}}"
 
 # ROS defaults
 ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-7}"
@@ -14,8 +13,6 @@ RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
 AP_SSID="${AP_SSID:-SHARKY}"
 AP_PSK="${AP_PSK:-Luna21}"
 
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "Missing required command: $1" >&2
@@ -24,31 +21,23 @@ require_cmd() {
 }
 
 wait_ssh() {
-  local tries=60
-  echo "Waiting for SSH on ${USER}@${HOST} ..."
-  until ssh -o ConnectTimeout=2 ${SSH_OPTS} "${USER}@${HOST}" true 2>/dev/null; do
-    tries=$((tries-1))
-    if [ "${tries}" -le 0 ]; then
-      echo "SSH not reachable at ${HOST}" >&2
-      exit 1
-    fi
-    sleep 2
-  done
+  # No-op in local-only mode
+  return 0
 }
 
 remote() {
-  ssh ${SSH_OPTS} "${USER}@${HOST}" "$@"
+  # Execute locally using bash -lc to match login shell semantics
+  bash -lc "$*"
 }
 
 remote_sudo() {
-  # Run a command as root via sudo -S on the remote
-  # Keep commands simple to avoid quoting pitfalls.
-  ssh ${SSH_OPTS} "${USER}@${HOST}" "echo \"${PASS}\" | sudo -S bash -lc \"$*\""
+  # Run command as root locally
+  sudo bash -lc "$*"
 }
 
 copy_to() {
   # copy_to <local_path> <remote_path>
-  scp ${SSH_OPTS} "$1" "${USER}@${HOST}:$2"
+  cp "$1" "$2"
 }
 
 

@@ -5,10 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bootstrap_env.sh
 source "${SCRIPT_DIR}/bootstrap_env.sh"
 
-require_cmd ssh
-
-echo "Target: ${USER}@${HOST}"
-wait_ssh
+echo "Setting up web stream locally..."
 
 APP_DIR="/opt/sharky-webcam"
 SERVICE_NAME="sharky_webcam.service"
@@ -113,7 +110,7 @@ PYEOF"
 remote_sudo "mv /tmp/app.py ${APP_DIR}/app.py && chown -R ${USER}:${USER} ${APP_DIR}"
 
 echo "Creating systemd service ${SERVICE_NAME} ..."
-remote "cat > /tmp/${SERVICE_NAME} <<'EOF'
+remote "cat > /tmp/${SERVICE_NAME} <<EOF
 [Unit]
 Description=Sharky Web Camera (Flask + Picamera2)
 After=network-online.target
@@ -135,7 +132,7 @@ remote_sudo "mv /tmp/${SERVICE_NAME} ${SERVICE_PATH} && chown root:root ${SERVIC
 remote_sudo "systemctl daemon-reload && systemctl enable --now ${SERVICE_NAME}"
 
 echo "Web stream available on:"
-echo "  http://${HOST}:8000/   (LAN)"
+echo "  http://localhost:8000/ (LAN or via hostname)"
 echo "  http://10.42.0.1:8000/ (AP default via NetworkManager)"
 
 

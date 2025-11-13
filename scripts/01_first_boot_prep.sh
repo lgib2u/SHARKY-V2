@@ -5,15 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bootstrap_env.sh
 source "${SCRIPT_DIR}/bootstrap_env.sh"
 
-require_cmd ssh
-require_cmd scp
-
-echo "Target: ${USER}@${HOST}"
-wait_ssh
+echo "Running first-boot prep locally..."
 
 echo "Updating OS and installing prerequisites..."
 remote_sudo "apt update && apt full-upgrade -y"
 remote_sudo "apt install -y libcamera-apps dphys-swapfile \
+  libcamera-dev \
   build-essential cmake git wget curl gnupg lsb-release \
   python3-pip python3-venv python3-colcon-common-extensions python3-vcstool \
   python3-rosdep python3-empy python3-numpy \

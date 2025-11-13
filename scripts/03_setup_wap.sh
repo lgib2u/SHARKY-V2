@@ -5,10 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bootstrap_env.sh
 source "${SCRIPT_DIR}/bootstrap_env.sh"
 
-require_cmd ssh
-
-echo "Target: ${USER}@${HOST}"
-wait_ssh
+echo "Configuring Wi‑Fi hotspot locally..."
 
 echo "Ensuring NetworkManager is installed and active..."
 remote_sudo "apt update && apt install -y network-manager"

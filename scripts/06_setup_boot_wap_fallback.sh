@@ -5,10 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bootstrap_env.sh
 source "${SCRIPT_DIR}/bootstrap_env.sh"
 
-require_cmd ssh
-
-echo "Target: ${USER}@${HOST}"
-wait_ssh
+echo "Configuring boot-time AP fallback locally..."
 
 REMOTE_SCRIPT="/usr/local/sbin/sharky_boot_net.sh"
 SERVICE_PATH="/etc/systemd/system/sharky_boot_net.service"
@@ -78,7 +75,7 @@ EOSH"
 remote_sudo "mv /tmp/sharky_boot_net.sh ${REMOTE_SCRIPT} && chmod 755 ${REMOTE_SCRIPT}"
 
 echo "Creating systemd service for boot watchdog..."
-remote "cat > /tmp/sharky_boot_net.service <<'EOF'
+remote "cat > /tmp/sharky_boot_net.service <<EOF
 [Unit]
 Description=Sharky boot network watchdog (switch to AP if no SSH)
 After=network-online.target

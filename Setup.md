@@ -242,71 +242,136 @@ free -h
 
 
 ### Where you are now
-You should be able to SSH into the Pi, run a ROS 2 camera publisher (`libcamera_ros` recommended), and view the stream from your development machine using `rqt_image_view` or RViz. This completes the setup “up until viewing the video from the Pi’s camera.”
+You should be able to SSH into the Pi, run a ROS 2 camera publisher (`camera_ros` recommended), and view the stream from your development machine using `rqt_image_view` or RViz. This completes the setup “up until viewing the video from the Pi’s camera.”
 
 
-### Automation (run from your Mac)
+### Automation
 
-Scripts in `scripts/` automate the above steps over SSH (non-interactive). Defaults are set for your device:
-- Host: `sharky.local`
-- User: `lewis`
-- Password: `Luna21`
-
-Security note: These scripts send the password to `sudo` on the Pi non-interactively. Consider rotating the password after setup or creating passwordless sudo for specific commands if appropriate.
-
-1) First-boot prep (updates, camera tools, swap, deps, rosdep):
+These scripts are intended to run directly on the Pi (local-only). Clone the repo on the Pi and execute:
 
 ```bash
 cd "Raspi Setup"
 chmod +x scripts/*.sh
 ./scripts/01_first_boot_prep.sh
-```
-
-2) Install ROS 2 minimal and `libcamera_ros` (long build on Zero 2 W):
-
-```bash
 ./scripts/02_install_ros2_minimal.sh
-```
 
-3) Configure the Pi as a Wi‑Fi Access Point (NetworkManager hotspot):
-
-```bash
-# Optional: override AP SSID/PSK
+# Optional:
 # export AP_SSID="Sharky-AP"
 # export AP_PSK="SharkyCam123"
 ./scripts/03_setup_wap.sh
-```
-
-4) Auto-start camera publisher at boot (systemd service):
-
-```bash
 ./scripts/04_enable_camera_service.sh
-```
-
-After the service starts, view the image topic on your ROS 2 machine:
-
-```bash
-ros2 run rqt_image_view rqt_image_view
-```
-
-5) Web viewer (for non-ROS devices):
-
-```bash
 ./scripts/05_setup_web_stream.sh
-```
-
-Then open:
-- LAN: `http://sharky.local:8000/`
-- AP (default NetworkManager shared): `http://10.42.0.1:8000/`
-
-6) Boot fallback to AP if no SSH within 60s (with LED signals):
-
-```bash
 ./scripts/06_setup_boot_wap_fallback.sh
 ```
 
-Behavior:
-- On boot: LED fast blink while waiting for SSH.
-- If SSH login detected: stay on client Wi‑Fi; LED steady on.
+After enabling the web stream, open:
+- LAN/hostname: `http://localhost:8000/` (or `http://<pi-hostname>.local:8000/`)
+- AP (default NetworkManager shared): `http://10.42.0.1:8000/`
+
+Boot fallback behavior:
+- On boot: LED fast blink while waiting window elapses.
+- If an SSH login is detected during the window: stay on client Wi‑Fi; LED steady on.
 - If not: switch to AP `SHARKY` (password `Luna21`); LED slow blink.
 
+### Off‑board ORB_SLAM2 on macOS (recommended)
+
+Run ORB_SLAM2 on your Mac via an Ubuntu VM, and bridge the Pi’s ROS 2 `/image_raw` into ROS 1.
+
+1) Create an Ubuntu 20.04 VM (for ROS 1 Noetic)
+
+```bash
+# macOS (Homebrew)
+brew install --cask multipass
+multipass launch 20.04 --name orbslam --disk 30G --mem 6G --cpus 4
+multipass shell orbslam
+```
+
+2) Inside the VM, install ROS 1 Noetic and build ORB_SLAM2
+
+```bash
+sudo apt update
+sudo apt install -y ros-noetic-desktop-full build-essential cmake git \
+  libopencv-dev libeigen3-dev libboost-all-dev libtbb-dev libglew-dev \
+  libpython3-dev python3-numpy
+echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+# Pangolin
+git clone https://github.com/stevenlovegrove/Pangolin.git
+cd Pangolin && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+cd ~
+
+# ORB_SLAM2
+git clone https://github.com/raulmur/ORB_SLAM2.git
+cd ORB_SLAM2 && chmod +x build.sh && ./build.sh
+```
+
+3) Bridge ROS 2 (Pi) → ROS 1 (VM)
+
+- Ensure your Mac/VM and the Pi are on the same network and that DDS multicast is allowed. The Pi publishes `/image_raw` (ROS 2, Domain ID `7` by default).
+- Run a ROS 1↔ROS 2 dynamic bridge on any Linux machine reachable by both (your VM is fine). Build from source for Humble↔Noetic:
+
+```bash
+# In a second Ubuntu 22.04 machine/VM (recommended) or container:
+sudo apt update && sudo apt install -y build-essential cmake git python3-colcon-common-extensions
+# Install ROS 2 Humble (standard instructions) and source it, then:
+mkdir -p ~/bridge_ws/src && cd ~/bridge_ws/src
+git clone https://github.com/ros2/ros1_bridge.git -b humble
+cd ..
+colcon build --cmake-force-configure
+source install/setup.bash
+export ROS_DOMAIN_ID=7   # match the Pi
+export ROS_MASTER_URI=http://<ros1-master-ip>:11311  # your Noetic VM
+ros2 run ros1_bridge dynamic_bridge
+```
+
+4) Run ORB_SLAM2, subscribing to the bridged ROS 1 topic
+
+```bash
+# In the Ubuntu 20.04 VM (ROS 1)
+source /opt/ros/noetic/setup.bash
+roscore   # in one terminal
+
+# In another terminal in the same VM:
+cd ~/ORB_SLAM2
+# Use a camera settings YAML (calibrate your Pi camera; see repo docs)
+rosrun ORB_SLAM2 Mono Vocabulary/ORBvoc.txt Examples/Monocular/YourCamera.yaml
+```
+
+Verify the ROS 1 topic exists:
+
+```bash
+rostopic list | grep image_raw    # should show /camera/image_raw
+```
+
+Notes:
+- You must provide a correct camera calibration YAML for ORB_SLAM2. Calibrate with ROS’s `camera_calibration` and save a YAML matching the `Examples/Monocular/*.yaml` schema in ORB_SLAM2.
+- ORB_SLAM2 details and dependencies: see the repository README [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2).
+
+
+### Automation (run directly on the Pi)
+
+If you prefer to clone this repo on the Pi and run everything locally (no SSH hop), enable local mode. Local mode maps the helper functions to run commands directly with `sudo` instead of over SSH.
+
+```bash
+# On the Pi
+git clone <your-repo-url> "Raspi Setup"
+cd "Raspi Setup"
+chmod +x scripts/*.sh
+
+# Enable local mode (or set HOST=localhost which auto-enables)
+export RUN_LOCAL=true
+
+./scripts/01_first_boot_prep.sh
+./scripts/02_install_ros2_minimal.sh
+# Optional:
+./scripts/03_setup_wap.sh
+./scripts/04_enable_camera_service.sh
+./scripts/05_setup_web_stream.sh
+./scripts/06_setup_boot_wap_fallback.sh
+```
+
+Notes:
+- You can still override configuration via env vars (e.g., `AP_SSID`, `AP_PSK`, `ROS_DOMAIN_ID`, `RMW_IMPLEMENTATION`).
+- In local mode, SSH/scp are not required; commands execute directly on the Pi.
