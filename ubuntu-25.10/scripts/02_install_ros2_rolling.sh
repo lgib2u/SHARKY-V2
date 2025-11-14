@@ -20,16 +20,15 @@ remote_sudo "command -v rosdep >/dev/null 2>&1 || python3 -m pip install rosdep 
 remote_sudo "command -v vcs >/dev/null 2>&1 || python3 -m pip install vcstool --break-system-packages"
 remote_sudo "command -v colcon >/dev/null 2>&1 || python3 -m pip install colcon-common-extensions --break-system-packages"
 remote_sudo "rosdep init || true"
-remote "rosdep update || true"
-remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src --ignore-src -y --rosdistro ${ROS_DISTRO} \
-  --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev python3-catkin-pkg-modules' || true"
+remote "export PATH=/usr/local/bin:/home/${USER}/.local/bin:\$PATH; rosdep update || true"
+remote "export PATH=/usr/local/bin:/home/${USER}/.local/bin:\$PATH; sudo rosdep install --from-paths /home/${USER}/ros2_ws/src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev python3-catkin-pkg-modules' || true"
 
 echo "Building camera_ros (this may take a while)..."
-remote "cd ~/ros2_ws && colcon build \
+remote "bash -lc 'source /opt/ros/${ROS_DISTRO}/setup.bash 2>/dev/null || true; export PATH=/usr/local/bin:/home/${USER}/.local/bin:\$PATH; cd ~/ros2_ws && colcon build \
   --merge-install --symlink-install \
   --packages-select camera_ros \
   --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-  --event-handlers console_direct+"
+  --event-handlers console_direct+'"
 
 echo "Ensuring workspace is sourced on login..."
 remote "grep -q 'ros2_ws/install/setup.bash' ~/.bashrc || echo 'source ~/ros2_ws/install/setup.bash' >> ~/.bashrc"
