@@ -13,7 +13,14 @@ remote "cd ~/ros2_ws/src && [ -d camera_ros ] || git clone https://github.com/ch
 
 echo "Installing dependencies via rosdep..."
 remote_sudo "apt update"
-remote_sudo "rosdep update || true"
+# Ensure tooling exists (apt where available; fallback to pip)
+remote_sudo "apt install -y python3-rosdep python3-vcstool python3-colcon-common-extensions || true"
+remote_sudo "python3 -m pip install -U pip setuptools wheel --break-system-packages || true"
+remote_sudo "command -v rosdep >/dev/null 2>&1 || python3 -m pip install rosdep --break-system-packages"
+remote_sudo "command -v vcs >/dev/null 2>&1 || python3 -m pip install vcstool --break-system-packages"
+remote_sudo "command -v colcon >/dev/null 2>&1 || python3 -m pip install colcon-common-extensions --break-system-packages"
+remote_sudo "rosdep init || true"
+remote "rosdep update || true"
 remote_sudo "rosdep install --from-paths /home/${USER}/ros2_ws/src --ignore-src -y --rosdistro ${ROS_DISTRO} \
   --skip-keys 'fastcdr ignition-cmake2 ignition-math6 urdfdom_headers rti-connext-dds-6.0.1 python3-sip-dev python3-catkin-pkg-modules' || true"
 
