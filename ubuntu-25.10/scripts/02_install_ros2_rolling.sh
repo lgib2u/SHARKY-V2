@@ -14,6 +14,9 @@ remote "cd ~/ros2_ws/src && [ -d camera_ros ] || git clone https://github.com/ch
 echo "Installing dependencies via rosdep..."
 remote_sudo "apt update"
 # Ensure tooling exists (apt where available; fallback to pip)
+remote_sudo "apt install -y python3-pip python3-venv || true"
+remote_sudo "python3 -m ensurepip --upgrade || true"
+remote "python3 -m pip --version || true"
 remote_sudo "apt install -y python3-rosdep python3-vcstool python3-colcon-common-extensions || true"
 remote_sudo "python3 -m pip install -U pip setuptools wheel --break-system-packages || true"
 remote_sudo "command -v rosdep >/dev/null 2>&1 || python3 -m pip install rosdep --break-system-packages"
